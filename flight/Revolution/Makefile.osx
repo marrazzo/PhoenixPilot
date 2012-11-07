@@ -42,6 +42,7 @@ ENABLE_AUX_UART ?= NO
 #
 USE_BOOTLOADER ?= NO
 
+OSG_VISUALIZATION ?= YES
 
 # Set to YES when using Code Sourcery toolchain
 CODE_SOURCERY ?= NO
@@ -64,6 +65,10 @@ MODULES += FirmwareIAP
 
 # To run simulation instead of connect to SITL
 MODULES += Sensors/simulated
+
+ifeq ($(OSG_VISUALIZATION), YES)
+MODULES += Visualization
+endif
 
 MODULES += Telemetry
 
@@ -572,13 +577,21 @@ gccversion :
 	@echo $(MSG_SYMBOL_TABLE) $@
 	$(NM) -n $< > $@
 
+# Build the visualization object file and include it in the build
+ifeq ($(OSG_VISUALIZATION), YES)
+$(OUTDIR)/vis_lib.o: $(TOP)/flight/PiOS.osx/visualization/vis_lib.cpp
+	$(CPP) -c $(TOP)/flight/PiOS.osx/visualization/vis_lib.cpp -o $(OUTDIR)/vis_lib.o
+ALLOBJ += $(OUTDIR)/vis_lib.o
+endif
+
 # Link: create ELF output file from object files.
 .SECONDARY : $(TARGET).elf
 .PRECIOUS : $(ALLOBJ)
+
 %.elf:  $(ALLOBJ)
 	@echo $(MSG_LINKING) $@
 # use $(CC) for C-only projects or $(CPP) for C++-projects:
-	$(CC) $(THUMB) $(CFLAGS) $(ALLOBJ) --output $@ $(LDFLAGS)
+	$(CPP) $(THUMB) $(CFLAGS)  $(ALLOBJ) -lstdc++ -L/usr/local/lib -losg -lOpenThreads -losgDB -losgGA -losgUtil -losgViewer -losgEarth -losgEarthUtil --output $@ $(LDFLAGS)
 #	$(CPP) $(THUMB) $(CFLAGS) $(ALLOBJ) --output $@ $(LDFLAGS)
 
  
