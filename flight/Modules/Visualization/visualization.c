@@ -70,10 +70,19 @@
 
 #include "vis_lib.h"
 
+#include <pthread.h>
+#include <sys/socket.h>
+#include <arpa/inet.h>
+#include <stdlib.h>
+#include <string.h>
+#include <unistd.h>
+#include <fcntl.h>
+#include <netinet/in.h>
+
 // Private constants
 #define STACK_SIZE_BYTES 1540
-#define TASK_PRIORITY (tskIDLE_PRIORITY+3)
-#define VISUALIZATION_PERIOD 2
+#define TASK_PRIORITY (tskIDLE_PRIORITY+2)
+#define VISUALIZATION_PERIOD 20
 
 #define F_PI 3.14159265358979323846f
 #define PI_MOD(x) (fmod(x + F_PI, F_PI * 2) - F_PI)
@@ -109,22 +118,46 @@ int32_t VisualizationStart(void)
 
 MODULE_INITCALL(VisualizationInitialize, VisualizationStart)
 
+struct uav_data {
+	double q[4];
+	double NED[3];
+	double roll;
+	double pitch;
+};
+
 /**
- * Simulated sensor task.  Run a model of the airframe and produce sensor values
+ * Pump the some information over UDP to a visualization
  */
 static void VisualizationTask(void *parameters)
 {
-	void *g = vislib_initialize();
-	// Main task loop
+	int s;
+	struct sockaddr_in server;
 
-	vislib_start(g);
+	s = socket(PF_INET, SOCK_DGRAM, IPPROTO_UDP);
 
+	memset(&server,0,sizeof(server));
+  	server.sin_family = AF_INET;
+	server.sin_addr.s_addr = inet_addr("127.0.0.1");
+	server.sin_port = htons(3000);
+	inet_aton("127.0.0.1", &server.sin_addr);
+
+	struct uav_data uav_data;
+	AttitudeSimulatedData simData;
 	while (1) {
+		AttitudeSimulatedGet(&simData);
 
-		vTaskDelay(VISUALIZATION_PERIOD / portTICK_RATE_MS);
+		uav_data.q[0] = simData.q1;
+		uav_data.q[1] = simData.q2;
+		uav_data.q[2] = simData.q3;
+		uav_data.q[3] = simData.q4;
+		uav_data.NED[0] = simData.Position[0];
+		uav_data.NED[1] = simData.Position[1];
+		uav_data.NED[2] = simData.Position[2];
+		sendto(s, (struct sockaddr *) &uav_data, sizeof(uav_data), 0, (struct sockaddr *) &server, sizeof(server));
+		usleep(100000);
+		vTaskDelay(100);
 
 	}
-	vislib_shutdown(g);
 }
 
 /**

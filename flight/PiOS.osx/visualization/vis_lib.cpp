@@ -1,7 +1,14 @@
 #include "vis_lib.h"
 
 
+#include <iostream>
 #include <pthread.h>
+#include <signal.h>
+#include <sched.h>
+#include <signal.h>
+#include <errno.h>
+
+
 #include <osg/PointSprite>
 #include <osg/BlendFunc>
 #include <osg/StateAttribute>
@@ -29,8 +36,6 @@
 #include <osgGA/FlightManipulator>
 #include <osgGA/StateSetManipulator>
 #include <osgGA/AnimationPathManipulator>
-
-#include <iostream>
 
 #include <osgEarth/MapNode>
 #include <osgEarth/XmlUtils>
@@ -224,66 +229,43 @@ void updateCamera(struct global_struct *g, float pitch, float roll)
 }
 
 
-void *run_thread(void * arg)
-{
-    struct global_struct *g = (struct global_struct *) arg;
-    
-    double LLA[] = {42.349273, -71.100549, 500};
-    double quat[] = {1,0,0,0};
-    double pitch = -45;
-
-    while(!g->viewer->done())
-    {
-        pitch+=0.1;
-        if (pitch > 45)
-            pitch = -45;
-
-        updatePosition(g, LLA, quat);
-        updateCamera(g, pitch, 20);
-        LLA[1] += 0.00001;
-
-        g->viewer->frame();
-    }
-    return NULL;
-}
-
 /**
- * Initialize the scene and populate a structure that contains
- * all the required handle for the rest of the functionality
+ * Set up the scene with the UAV and the map
  */
-
-//extern "C"
-//{
-extern "C" void *vislib_initialize()
+void create_scene(struct global_struct *g)
 {
- // Initialize the global data if it doesn't exist
-    struct global_struct *g = (struct global_struct *) malloc(sizeof(struct global_struct));
-    g->viewer = NULL;
-    g->magic = MAGIC_VALUE;
+    osg::DisplaySettings::instance()->setMinimumNumStencilBits( 8 );
 
+    fprintf(stdout, "Starting create_scene\n");
     // Create a root node
     osg::ref_ptr<osg::Group> root = new osg::Group;
-
-    osg::Node* earth = osgDB::readNodeFile("/Users/Cotton/Programming/osg/osgearth/tests/boston.earth");
-    g->mapNode = osgEarth::MapNode::findMapNode( earth );
-
-    osg::Node* airplane = createAirplane(g);
-    g->uavPos = new osgEarth::Util::ObjectLocatorNode(g->mapNode->getMap());
-    g->uavPos->getLocator()->setPosition( osg::Vec3d(-71.100549, 42.349273, 200) );
-    g->uavPos->addChild(airplane);
-
-    root->addChild(earth);
-    root->addChild(g->uavPos);
-
-    osgUtil::Optimizer optimizer;
-    optimizer.optimize(root);
 
     if (g->viewer == NULL)
         g->viewer = new osgViewer::CompositeViewer();
     singleWindow(g->viewer, root);
+    g->viewer->setThreadingModel(osgViewer::Viewer::SingleThreaded);
 
     g->viewer->getView(0)->addEventHandler(new osgViewer::StatsHandler);
     g->viewer->getView(0)->addEventHandler(new osgViewer::ThreadingHandler);
+
+    fprintf(stdout, "Getting earth\n");
+    //osg::Node* earth = osgDB::readNodeFile("/Users/Cotton/Programming/osg/osgearth/tests/gdal_tiff.earth");
+    fprintf(stdout, "Got earth\n");
+    //g->mapNode = osgEarth::MapNode::findMapNode( earth );
+    g->mapNode = new osgEarth::MapNode();
+
+    fprintf(stdout, "Getting airplane\n");
+    osg::Node* airplane = createAirplane(g);
+    fprintf(stdout, "Got airplane\n");
+    g->uavPos = new osgEarth::Util::ObjectLocatorNode(g->mapNode->getMap());
+    g->uavPos->getLocator()->setPosition( osg::Vec3d(-71.100549, 42.349273, 200) );
+    g->uavPos->addChild(airplane);
+
+    //root->addChild(earth);
+    root->addChild(g->uavPos);
+
+    osgUtil::Optimizer optimizer;
+    optimizer.optimize(root);
     
     g->viewer->realize();
 
@@ -305,6 +287,105 @@ extern "C" void *vislib_initialize()
     g->tracker->setHomePosition( osg::Vec3f(0.f,40.f,40.f), osg::Vec3f(0.f,0.f,0.f), osg::Vec3f(0,0,1) ); 
     g->viewer->getView(1)->setCameraManipulator(g->tracker);
 
+    fprintf(stdout, "Ended create_scene\n");
+}
+
+void *run_thread(void * arg)
+{
+    struct global_struct *g = (struct global_struct *) arg;
+
+
+    sigset_t xSignals;
+    sigemptyset( &xSignals );
+    sigaddset( &xSignals, SIGUSR1 );
+    pthread_sigmask( SIG_SETMASK, &xSignals, NULL );
+    
+    create_scene(g);
+
+    double LLA[] = {42.349273, -71.100549, 500};
+    double quat[] = {1,0,0,0};
+    double pitch = -45;
+
+    fprintf(stdout,"Starting visualization thread\n");
+
+    while(!g->viewer->done())
+    {
+        pitch+=0.1;
+        if (pitch > 45)
+            pitch = -45;
+
+        updatePosition(g, LLA, quat);
+        updateCamera(g, pitch, 20);
+        LLA[1] += 0.00001;
+
+        g->viewer->frame();
+    }
+    return NULL;
+}
+
+class DataReceiverThread : public OpenThreads::Thread
+{
+public:
+    static DataReceiverThread* instance()
+    {
+        static DataReceiverThread s_thread;
+        return &s_thread;
+    }
+    virtual int cancel();
+    virtual void run();
+
+    void addToContent( int ch );
+    bool getContent( std::string& str );
+
+protected:
+    OpenThreads::Mutex _mutex;
+    std::string _content;
+    bool _done;
+    bool _dirty;
+};
+
+int DataReceiverThread::cancel()
+{
+    _done = true;
+    while( isRunning() ) YieldCurrentThread();
+    return 0;
+}
+
+void DataReceiverThread::run()
+{
+    sigset_t set;
+    sigfillset(&set);
+    sigprocmask(SIG_BLOCK, &set, NULL);
+
+    _done = false;
+    _dirty = true;
+
+    struct global_struct *g = (struct global_struct *) malloc(sizeof(struct global_struct));
+    create_scene(g);
+
+    do
+    {
+        YieldCurrentThread();
+  
+        
+    } while( !_done );
+}
+
+/**
+ * Initialize the scene and populate a structure that contains
+ * all the required handle for the rest of the functionality
+ */
+extern "C" void *vislib_initialize()
+{
+    fprintf(stdout, "Starting initialization\n");
+    // Initialize the global data if it doesn't exist
+    struct global_struct *g = (struct global_struct *) malloc(sizeof(struct global_struct));
+    g->viewer = NULL;
+    g->magic = MAGIC_VALUE;
+
+
+    fprintf(stdout, "Ended initialization\n");
+
     return g;
 }
 
@@ -313,16 +394,18 @@ extern "C" void *vislib_initialize()
  */
 void vislib_start(void *i)
 {
-    struct global_struct *g = (struct global_struct *)i;
-    if (g->magic != MAGIC_VALUE)
-        return;
+    DataReceiverThread::instance()->startThread();
+/*
+    struct global_struct *g = (struct global_struct *) vislib_initialize();
+    //if (g->magic != MAGIC_VALUE)
+    //    return;
 
      // Set up the thread parameters
     pthread_attr_t xThreadAttributes;
     pthread_attr_init( &xThreadAttributes );
-    pthread_attr_setdetachstate( &xThreadAttributes, PTHREAD_CREATE_DETACHED );
+//    pthread_attr_setdetachstate( &xThreadAttributes, PTHREAD_CREATE_DETACHED );
 
-    pthread_create(&g->vis_thread, &xThreadAttributes, run_thread, g);   
+    pthread_create(&g->vis_thread, &xThreadAttributes, run_thread, g);*/
 }
 
 /**
