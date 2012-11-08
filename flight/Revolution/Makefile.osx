@@ -577,13 +577,6 @@ gccversion :
 	@echo $(MSG_SYMBOL_TABLE) $@
 	$(NM) -n $< > $@
 
-# Build the visualization object file and include it in the build
-ifeq ($(OSG_VISUALIZATION), YES)
-$(OUTDIR)/vis_lib.o: $(TOP)/flight/PiOS.osx/visualization/vis_lib.cpp
-	$(CPP) -c $(TOP)/flight/PiOS.osx/visualization/vis_lib.cpp -o $(OUTDIR)/vis_lib.o
-ALLOBJ += $(OUTDIR)/vis_lib.o
-endif
-
 # Link: create ELF output file from object files.
 .SECONDARY : $(TARGET).elf
 .PRECIOUS : $(ALLOBJ)
