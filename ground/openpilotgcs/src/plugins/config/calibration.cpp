@@ -151,7 +151,11 @@ void Calibration::connectSensor(sensor_type sensor, bool con)
     }
 }
 
-
+/**
+ * @brief Calibration::dataUpdated Receive updates of any connected sensors and
+ * process them based on the calibration state (e.g. six point or leveling)
+ * @param obj The object that was updated
+ */
 void Calibration::dataUpdated(UAVObject * obj) {
 
     if (!timer.isActive()) {
@@ -171,6 +175,8 @@ void Calibration::dataUpdated(UAVObject * obj) {
         return;
         break;
     case LEVELING:
+        // Store data while computing the level attitude
+        // and if completed go back to the idle state
         if(storeLevelingMeasurement(obj)) {
             connectSensor(GYRO, false);
             connectSensor(ACCEL, false);
@@ -183,6 +189,8 @@ void Calibration::dataUpdated(UAVObject * obj) {
         }
         break;
     case SIX_POINT_COLLECT1:
+        // These state collect each position for six point calibration and
+        // when enough data is acquired advance to the next step
         if(storeSixPointMeasurement(obj,1)) {
             // If all the data is collected advance to the next position
             calibration_state = SIX_POINT_WAIT2;
@@ -233,6 +241,9 @@ void Calibration::dataUpdated(UAVObject * obj) {
         }
         break;
     case SIX_POINT_COLLECT6:
+        // Store data points in the final position and if enough data
+        // has been computed attempt to calculate the scale and bias
+        // for the accel and optionally the mag.
         if(storeSixPointMeasurement(obj,6)) {
             // All data collected.  Disconnect everything and compute value
             connectSensor(ACCEL, false);
