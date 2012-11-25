@@ -2,9 +2,9 @@
     <object name="MultiRotorPathFollowerSettingsCC" singleinstance="true" settings="true">
         <description>Settings for the @ref FixedWingPathFollowerModule</description>
 
-        <field name="NorthPID" units="" type="float" elements="4" elementnames="Kp,Ki,Kd,Ki_Ilimit" defaultvalue="0,0,0,0" />
-        <field name="EastPID" units="" type="float" elements="4" elementnames="Kp,Ki,Kd,Ki_Ilimit" defaultvalue="0,0,0,0" />
-        <field name="DownPID" units="" type="float" elements="4" elementnames="Kp,Ki,Kd,Ki_Ilimit" defaultvalue="0,0,0,0" />
+        <field name="NorthPID" units="" type="float" elements="4" elementnames="Kp,Ki,Kd,Ilimit" defaultvalue="0,0,0,0" />
+        <field name="EastPID" units="" type="float" elements="4" elementnames="Kp,Ki,Kd,Ilimit" defaultvalue="0,0,0,0" />
+        <field name="DownPID" units="" type="float" elements="4" elementnames="Kp,Ki,Kd,Ilimit" defaultvalue="0,0,0,0" />
 
         <!-- output limits -->
         <!-- maximum allowed bank angles in navigates flight -->
