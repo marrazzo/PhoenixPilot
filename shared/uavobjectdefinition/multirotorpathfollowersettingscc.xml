@@ -1,0 +1,25 @@
+<xml>
+    <object name="MultiRotorPathFollowerSettingsCC" singleinstance="true" settings="true">
+        <description>Settings for the @ref FixedWingPathFollowerModule</description>
+
+        <field name="NorthPID" units="" type="float" elements="4" elementnames="Kp,Ki,Kd,Ki_Ilimit" defaultvalue="0,0,0,0" />
+        <field name="EastPID" units="" type="float" elements="4" elementnames="Kp,Ki,Kd,Ki_Ilimit" defaultvalue="0,0,0,0" />
+        <field name="DownPID" units="" type="float" elements="4" elementnames="Kp,Ki,Kd,Ki_Ilimit" defaultvalue="0,0,0,0" />
+
+        <!-- output limits -->
+        <!-- maximum allowed bank angles in navigates flight -->
+        <field name="RollLimit" units="deg" type="float" elements="3" elementnames="Min,Neutral,Max" defaultvalue="-35,0,35" />
+        <!-- maximum allowed pitch angles and setpoint for neutral pitch -->
+        <field name="PitchLimit" units="deg" type="float" elements="3" elementnames="Min,Neutral,Max" defaultvalue="-10,0,10" />
+        <!-- minimum and maximum allowed throttle setpoint -->
+        <field name="ThrottleLimit" units="" type="float" elements="3" elementnames="Min,Neutral,Max" defaultvalue="0.0,0.5,1.0" />
+
+        <!-- Update period sets the loop rate for the path follower, in [ms]-->
+        <field name="UpdatePeriod" units="ms" type="int16" elements="1" defaultvalue="100"/>
+        
+        <access gcs="readwrite" flight="readwrite"/>
+        <telemetrygcs acked="true" updatemode="onchange" period="0"/>
+        <telemetryflight acked="true" updatemode="onchange" period="0"/>
+        <logging updatemode="manual" period="0"/>
+    </object>
+</xml>

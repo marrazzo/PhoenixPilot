@@ -18,6 +18,7 @@
 			<elementname>AltitudeHold</elementname>
 			<elementname>PathPlanner</elementname>
 			<elementname>PathFollower</elementname>
+			<elementname>MultiRotorPathFollower</elementname>
 			<elementname>FlightPlan</elementname>
 			<elementname>Com2UsbBridge</elementname>
 			<elementname>Usb2ComBridge</elementname>
@@ -46,6 +47,7 @@
 			<elementname>AltitudeHold</elementname>
 			<elementname>PathPlanner</elementname>
 			<elementname>PathFollower</elementname>
+			<elementname>MultiRotorPathFollower</elementname>
 			<elementname>FlightPlan</elementname>
 			<elementname>Com2UsbBridge</elementname>
 			<elementname>Usb2ComBridge</elementname>
@@ -78,6 +80,7 @@
 			<elementname>AltitudeHold</elementname>
 			<elementname>PathPlanner</elementname>
 			<elementname>PathFollower</elementname>
+			<elementname>MultiRotorPathFollower</elementname>
 			<elementname>FlightPlan</elementname>
 			<elementname>Com2UsbBridge</elementname>
 			<elementname>Usb2ComBridge</elementname>

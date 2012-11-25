@@ -117,6 +117,7 @@ MODULES += Attitude
 endif
 MODULES += Stabilization Actuator ManualControl FirmwareIAP
 # MODULES += PathFollower/coptercontrol
+MODULES += MultiRotorPathFollower/coptercontrol
 # Telemetry must be last to grab the optional modules (why?)
 MODULES += Telemetry
 
@@ -238,6 +239,7 @@ SRC += $(OPUAVSYNTHDIR)/txpidsettings.c
 SRC += $(OPUAVSYNTHDIR)/fixedwingairspeeds.c
 SRC += $(OPUAVSYNTHDIR)/fixedwingpathfollowerstatus.c
 SRC += $(OPUAVSYNTHDIR)/fixedwingpathfollowersettingscc.c
+SRC += $(OPUAVSYNTHDIR)/multirotorpathfollowersettingscc.c
 SRC += $(OPUAVSYNTHDIR)/pathstatus.c
 SRC += $(OPUAVSYNTHDIR)/pathdesired.c
 SRC += $(OPUAVSYNTHDIR)/homelocation.c
