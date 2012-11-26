@@ -30,6 +30,7 @@
 
 #include <coreplugin/iuavgadget.h>
 #include "manualcontrolcommand.h"
+#include "pathdesired.h"
 #include "gcscontrolgadgetconfiguration.h"
 #include "sdlgamepad/sdlgamepad.h"
 #include <QTime>

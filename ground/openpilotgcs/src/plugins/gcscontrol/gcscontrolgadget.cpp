@@ -251,6 +251,21 @@ void GCSControlGadget::readUDPCommand()
             }
 
         }
+        if(!badPack){
+                ExtensionSystem::PluginManager* pm = ExtensionSystem::PluginManager::instance();
+                UAVObjectManager* objManager = pm->getObject<UAVObjectManager>();
+
+                PathDesired* pathDesired = PathDesired::GetInstance(objManager);
+                PathDesired::DataFields pathDesiredData;
+                qDebug()<< "pd1: "<<pathDesiredData.End[0];
+                pathDesiredData.End[0] = roll/50.0f;
+                pathDesiredData.End[1] = pitch/50.0f;
+                pathDesiredData.End[2] = yaw/50.0f;
+                pathDesired->setData(pathDesiredData);
+
+                qDebug()<< "pd2: "<<pathDesiredData.End[0];
+        }
+
         if(!badPack && ((GCSControlGadgetWidget *)m_widget)->getUDPControl())
         {
              ManualControlCommand * obj = getManualControlCommand();
